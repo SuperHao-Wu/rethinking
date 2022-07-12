@@ -1,0 +1,135 @@
+data(chimpanzees, package = "rethinking")
+d <- chimpanzees
+rm(chimpanzees)
+# create treatment column to represent combinations of prosoc_left and condition
+d$treatment <- 1 + d$prosoc_left + 2*d$condition
+# value counts 
+table(d$actor)
+
+
+library(tidyverse)
+library(flextable)
+
+d %>% 
+  distinct(prosoc_left, condition) %>% 
+  mutate(description = c("Two food items on right and no partner",
+                         "Two food items on left and no partner",
+                         "Two food items on right and partner present",
+                         "Two food items on left and partner present")) %>% 
+  flextable() %>% 
+  width(width = c(1, 1, 4))
+
+d <-
+  d %>% 
+  mutate(treatment = factor(1 + prosoc_left + 2 * condition)) %>% 
+  # this will come in handy, later
+  mutate(labels = factor(treatment,
+                         levels = 1:4,
+                         labels = c("r/n", "l/n", "r/p", "l/p")))
+
+d %>% 
+  count(condition, treatment, prosoc_left)
+
+# We start with the simple intercept-only logistic regression model, which follows the statistical formula
+library(brms)
+b11.1 <-
+  brm(data = d, 
+      family = binomial,
+      pulled_left | trials(1) ~ 1,
+      prior(normal(0, 10), class = Intercept),
+      seed = 11,
+      sample_prior = T,
+      file = "fits/b11.01")
+
+library(wesanderson)
+wes_palette("Moonrise2")
+wes_palette("Moonrise2")[1:4]
+
+library(ggthemes)
+
+theme_set(
+  theme_default() + 
+    theme_tufte() +
+    theme(plot.background = element_rect(fill = wes_palette("Moonrise2")[3],
+                                         color = wes_palette("Moonrise2")[3]))
+)
+
+prior_samples(b11.1) %>% 
+  mutate(p = inv_logit_scaled(Intercept)) %>% 
+  
+  ggplot(aes(x = p)) +
+  geom_density(fill = wes_palette("Moonrise2")[4], 
+               size = 0, adjust = 0.1) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("prior prob pull left")
+
+b11.1b <-
+  brm(data = d, 
+      family = binomial,
+      pulled_left | trials(1) ~ 1,
+      prior(normal(0, 1.5), class = Intercept),
+      seed = 11,
+      sample_prior = T,
+      file = "fits/b11.01b")
+
+prior_samples(b11.1b) %>% 
+  mutate(p = inv_logit_scaled(Intercept)) %>% 
+  
+  ggplot(aes(x = p)) +
+  geom_density(fill = wes_palette("Moonrise2")[4], 
+               size = 0, adjust = 0.1) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("prior prob pull left")
+
+# wrangle
+
+
+bind_rows(prior_samples(b11.1),
+          prior_samples(b11.1b)) %>% 
+  mutate(p = inv_logit_scaled(Intercept),
+         w = factor(rep(c(10, 1.5), each = n() / 2),
+                    levels = c(10, 1.5))) %>% 
+  # plot
+  ggplot(aes(x = p, fill = w)) +
+  geom_density(size = 0, alpha = 3/4, adjust = 0.1) +
+  scale_fill_manual(expression(italic(w)), values = wes_palette("Moonrise2")[c(4, 1)]) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(title = expression(alpha%~%Normal(0*", "*italic(w))),
+       x = "prior prob pull left")
+
+
+# w = 10
+b11.2 <- 
+  brm(data = d, 
+      family = binomial,
+      bf(pulled_left | trials(1) ~ a + b,
+         a ~ 1, 
+         b ~ 0 + treatment,
+         nl = TRUE),
+      prior = c(prior(normal(0, 1.5), nlpar = a),
+                prior(normal(0, 10), nlpar = b, coef = treatment1),
+                prior(normal(0, 10), nlpar = b, coef = treatment2),
+                prior(normal(0, 10), nlpar = b, coef = treatment3),
+                prior(normal(0, 10), nlpar = b, coef = treatment4)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      seed = 11,
+      sample_prior = T,
+      file = "fits/b11.02")
+
+# w = 0.5
+b11.3 <- 
+  brm(data = d, 
+      family = binomial,
+      bf(pulled_left | trials(1) ~ a + b,
+         a ~ 1, 
+         b ~ 0 + treatment,
+         nl = TRUE),
+      prior = c(prior(normal(0, 1.5), nlpar = a),
+                prior(normal(0, 0.5), nlpar = b, coef = treatment1),
+                prior(normal(0, 0.5), nlpar = b, coef = treatment2),
+                prior(normal(0, 0.5), nlpar = b, coef = treatment3),
+                prior(normal(0, 0.5), nlpar = b, coef = treatment4)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      seed = 11,
+      sample_prior = T,
+      file = "fits/b11.03")

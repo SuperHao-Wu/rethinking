@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  statistical-rethinking:
+    container_name: rethinking-r
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment: []
+    volumes:
+      - ./docker_home_dir:/home:z
+    ports:
+      - "8889:8787"
+    entrypoint:
+      - /usr/lib/rstudio-server/bin/rserver
+    command:
+      - --server-daemonize=0
+      - --server-app-armor-enabled=0

@@ -1,0 +1,51 @@
+.DS_Store
+.env
+.flaskenv
+*.pyc
+*.pyo
+dist/
+build/
+*.egg
+*.egg-info/
+_mailinglist
+.tox/
+.cache/
+.pytest_cache/
+.idea/
+.eggs
+.mypy_cache
+docs/_build/
+.vscode
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+*,cover
+
+# PyCharm files
+.idea
+playground.py
+playground.ipynb
+
+# Environments
+*/.env
+.env
+.venv
+env/
+venv/
+*/venv/
+ENV/
+env.bak/
+venv.bak/
+env*
+matplotlibttf
+*.log
+*.parquet
+*.xml
+Pipfile*
+pyproject.toml
+*/public/*
+*/node_modules/*
+# Byte-compiled files
+__pycache__/
+*.rds

@@ -1,0 +1,139 @@
+1657602883299:data(chimpanzees, package = "rethinking")
+1657602884527:d <- chimpanzees
+1657602885286:rm(chimpanzees)
+1657602949619:# create treatment column to represent combinations of prosoc_left and condition
+1657602949626:d$treatment <- 1 + d$prosoc_left + 2*d$condition
+1657602952898:d
+1657603041903:table(d$treatment)
+1657603066907:# value counts
+1657603066918:table(d$actor)
+1657603291279:library(tidyverse)
+1657603294916:library(flextable)
+1657603305129:d %>%
+1657603305139:distinct(prosoc_left, condition) %>%
+1657603305149:mutate(description = c("Two food items on right and no partner",
+1657603305157:"Two food items on left and no partner",
+1657603305164:"Two food items on right and partner present",
+1657603305172:"Two food items on left and partner present")) %>%
+1657603305179:flextable() %>%
+1657603305186:width(width = c(1, 1, 4))
+1657603512427:d <-
+1657603512458:d %>%
+1657603512493:mutate(treatment = factor(1 + prosoc_left + 2 * condition)) %>%
+1657603512501:# this will come in handy, later
+1657603512508:mutate(labels = factor(treatment,
+1657603512516:levels = 1:4,
+1657603512523:labels = c("r/n", "l/n", "r/p", "l/p")))
+1657603523419:d %>%
+1657603523429:count(condition, treatment, prosoc_left)
+1657603765161:b11.1 <-
+1657603765169:brm(data = d,
+1657603765178:family = binomial,
+1657603765187:pulled_left | trials(1) ~ 1,
+1657603765198:prior(normal(0, 10), class = Intercept),
+1657603765206:seed = 11,
+1657603765217:sample_prior = T,
+1657603765223:file = "fits/b11.01")
+1657603793096:# We start with the simple intercept-only logistic regression model, which follows the statistical formula
+1657603793106:library(brms)
+1657603800382:b11.1 <-
+1657603800392:brm(data = d,
+1657603800400:family = binomial,
+1657603800408:pulled_left | trials(1) ~ 1,
+1657603800415:prior(normal(0, 10), class = Intercept),
+1657603800422:seed = 11,
+1657603800429:sample_prior = T,
+1657603800435:file = "fits/b11.01")
+1657603884157:library(wesanderson)
+1657603885372:wes_palette("Moonrise2")
+1657603901985:wes_palette("Moonrise2")[1:4]
+1657603916144:library(ggthemes)
+1657603916430:theme_set(
+1657603916440:theme_default() +
+1657603916447:theme_tufte() +
+1657603916455:theme(plot.background = element_rect(fill = wes_palette("Moonrise2")[3],
+1657603916463:color = wes_palette("Moonrise2")[3]))
+1657603916470:)
+1657603943418:prior_samples(b11.1)
+1657603968071:prior_samples(b11.1) %>%
+1657603968079:mutate(p = inv_logit_scaled(Intercept)) %>%
+1657603968092:ggplot(aes(x = p)) +
+1657603968100:geom_density(fill = wes_palette("Moonrise2")[4],
+1657603968106:size = 0, adjust = 0.1) +
+1657603968113:scale_y_continuous(NULL, breaks = NULL) +
+1657603968119:xlab("prior prob pull left")
+1657604232293:b11.1b <-
+1657604232304:brm(data = d,
+1657604232316:family = binomial,
+1657604232326:pulled_left | trials(1) ~ 1,
+1657604232334:prior(normal(0, 1.5), class = Intercept),
+1657604232341:seed = 11,
+1657604232348:sample_prior = T,
+1657604232357:file = "fits/b11.01b")
+1657604288529:prior_samples(b11.1b) %>%
+1657604288538:mutate(p = inv_logit_scaled(Intercept)) %>%
+1657604288554:ggplot(aes(x = p)) +
+1657604288562:geom_density(fill = wes_palette("Moonrise2")[4],
+1657604288572:size = 0, adjust = 0.1) +
+1657604288580:scale_y_continuous(NULL, breaks = NULL) +
+1657604288588:xlab("prior prob pull left")
+1657606048958:bind_rows(prior_samples(b11.1),
+1657606048968:prior_samples(b11.1b))
+1657606065443:bind_rows(prior_samples(b11.1),
+1657606065454:prior_samples(b11.1b))
+1657606114384:# wrangle
+1657606114393:check <- bind_rows(prior_samples(b11.1),
+1657606114401:prior_samples(b11.1b))
+1657606118127:check
+1657606127048:str(check)
+1657606183969:bind_rows(prior_samples(b11.1),
+1657606183977:prior_samples(b11.1b)) %>%
+1657606183984:mutate(p = inv_logit_scaled(Intercept),
+1657606183991:w = factor(rep(c(10, 1.5), each = n() / 2),
+1657606183999:levels = c(10, 1.5)))
+1657606256388:bind_rows(prior_samples(b11.1),
+1657606256398:prior_samples(b11.1b)) %>%
+1657606256406:mutate(p = inv_logit_scaled(Intercept),
+1657606256414:w = factor(rep(c(10, 1.5), each = n() / 2),
+1657606256422:levels = c(10, 1.5))) %>%
+1657606256429:# plot
+1657606256437:ggplot(aes(x = p, fill = w)) +
+1657606256443:geom_density(size = 0, alpha = 3/4, adjust = 0.1) +
+1657606256450:scale_fill_manual(expression(italic(w)), values = wes_palette("Moonrise2")[c(4, 1)]) +
+1657606256457:scale_y_continuous(NULL, breaks = NULL) +
+1657606256463:labs(title = expression(alpha%~%Normal(0*", "*italic(w))),
+1657606256470:x = "prior prob pull left")
+1657606734277:# w = 10
+1657606734286:b11.2 <-
+1657606734295:brm(data = d,
+1657606734302:family = binomial,
+1657606734311:bf(pulled_left | trials(1) ~ a + b,
+1657606734317:a ~ 1,
+1657606734323:b ~ 0 + treatment,
+1657606734330:nl = TRUE),
+1657606734336:prior = c(prior(normal(0, 1.5), nlpar = a),
+1657606734342:prior(normal(0, 10), nlpar = b, coef = treatment1),
+1657606734349:prior(normal(0, 10), nlpar = b, coef = treatment2),
+1657606734355:prior(normal(0, 10), nlpar = b, coef = treatment3),
+1657606734365:prior(normal(0, 10), nlpar = b, coef = treatment4)),
+1657606734373:iter = 2000, warmup = 1000, chains = 4, cores = 4,
+1657606734380:seed = 11,
+1657606734388:sample_prior = T,
+1657606734394:file = "fits/b11.02")
+1657606812793:# w = 0.5
+1657606812804:b11.3 <-
+1657606812814:brm(data = d,
+1657606812826:family = binomial,
+1657606812835:bf(pulled_left | trials(1) ~ a + b,
+1657606812842:a ~ 1,
+1657606812849:b ~ 0 + treatment,
+1657606812855:nl = TRUE),
+1657606812862:prior = c(prior(normal(0, 1.5), nlpar = a),
+1657606812869:prior(normal(0, 0.5), nlpar = b, coef = treatment1),
+1657606812875:prior(normal(0, 0.5), nlpar = b, coef = treatment2),
+1657606812881:prior(normal(0, 0.5), nlpar = b, coef = treatment3),
+1657606812887:prior(normal(0, 0.5), nlpar = b, coef = treatment4)),
+1657606812894:iter = 2000, warmup = 1000, chains = 4, cores = 4,
+1657606812900:seed = 11,
+1657606812906:sample_prior = T,
+1657606812913:file = "fits/b11.03")
